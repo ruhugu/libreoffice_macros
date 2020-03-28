@@ -1,0 +1,64 @@
+Sub SeparateSheets
+	Dim outDoc As Object
+    inDoc = ThisComponent 'source document
+
+    ' Use the global string tools library to generate a path to save each CSV
+    GlobalScope.BasicLibraries.loadLibrary("Tools")
+    FileDirectory = Tools.Strings.DirectoryNameoutofPath(inDoc.getURL(), "/")
+    OriginalFileName = FileNameoutofPath(GetFileNameWithoutExtension(InDoc.getLocation()))
+
+    ' Work out number of sheets for looping over them later.
+    Sheets = inDoc.Sheets
+    NumSheets = Sheets.Count - 1
+
+	' Iterate over sheets
+    For I = 0 to NumSheets
+    	' Select sheet
+        inDoc.getCurrentController.setActiveSheet(Sheets(I)) 
+
+        ' Create dispatcher
+		Dispatcher = createUnoService("com.sun.star.frame.DispatchHelper")
+	   	inDocFrame = inDoc.getCurrentController.Frame 'This is required for the Dispatcher to modify the document
+ 
+        ' Copy sheet contents
+    	Dispatcher.executeDispatch(inDocFrame, ".uno:SelectAll", "", 0, array())
+    	Dispatcher.executeDispatch(inDocFrame, ".uno:Copy", "", 0, array())
+        
+        ' Create filename from sheet name
+        Filename = FileDirectory + "/hojas_" + OriginalFileName + "/" + Sheets(I).Name + ".ods"
+        FileURL = convertToURL(Filename)
+    
+    	' Open new file
+    	Dim InitProps()   'here, this table is not initialized
+    	Dim SaveProps()   'here, this table is not initialized
+    	Model = "private:factory/scalc"  ' Use default template for new file
+    	outDoc = StarDesktop.loadComponentFromURL(Model, "_blank", 0, InitProps())
+    	outDocFrame = outDoc.getCurrentController.Frame 'This is required for the Dispatcher to modify the document
+    	
+    	' Define paste arguments to copy values and format (not formulas)
+		'Dim CopyProps(4) as new com.sun.star.beans.PropertyValue
+		'CopyProps(0).Name = "Flags"
+		'CopyProps(0).Value = "SVDT"
+		'CopyProps(1).Name = "FormulaCommand"
+		'CopyProps(1).Value = 0
+		'CopyProps(2).Name = "SkipEmptyCells"
+		'CopyProps(2).Value = false
+		'CopyProps(3).Name = "Transpose"
+		'CopyProps(3).Value = false
+		'CopyProps(4).Name = "AsLink"
+		'CopyProps(4).Value = false
+		'CopyProps(5).Name = "MoveMode"
+		'CopyProps(5).Value = 4
+		
+		' Paste sheet contents to new file
+		'Dispatcher.executeDispatch(outDocFrame, ".uno:InsertContents", "", 0, CopyProps())
+		Dispatcher.executeDispatch(outDocFrame, ".uno:Paste", "", 0, array())
+    	Dispatcher.executeDispatch(outDocFrame, ".uno:SelectAll", "", 0, array())
+		Dispatcher.executeDispatch(outDocFrame, ".uno:ConvertFormulaToValue", "", 0, Array())
+ 
+ 		' Close document
+    	outDoc.storeAsURL(FileURL, SaveProps())
+	    outDoc.Close (True)
+    Next I
+
+End Sub
