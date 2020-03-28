@@ -1,3 +1,5 @@
+REM  *****  BASIC  *****
+
 Sub SeparateSheets
 	Dim outDoc As Object
     inDoc = ThisComponent 'source document
@@ -10,7 +12,11 @@ Sub SeparateSheets
     ' Work out number of sheets for looping over them later.
     Sheets = inDoc.Sheets
     NumSheets = Sheets.Count - 1
-
+    
+    ' Store initial sheet to come back at the end
+    inController = ThisComponent.getCurrentController()
+    InitialSheet = inController.getActiveSheet()
+ 
 	' Iterate over sheets
     For I = 0 to NumSheets
     	' Select sheet
@@ -60,5 +66,7 @@ Sub SeparateSheets
     	outDoc.storeAsURL(FileURL, SaveProps())
 	    outDoc.Close (True)
     Next I
-
+    
+    ' Go back to the initial sheet
+    inController.setActiveSheet(InitialSheet)
 End Sub
